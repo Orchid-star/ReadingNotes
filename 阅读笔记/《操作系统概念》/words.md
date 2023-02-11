@@ -7,3 +7,6 @@ end 正常中止程序
 abort 异常中断程序
 
 trace 查出，追溯，追踪
+
+mechanism 机制
+
