@@ -54,6 +54,8 @@ void test_build_thread()
 
 thread的创建可以根据函数的*形参列表*携带不定个数的参数。*即使函数的参数列表中有参数携带了默认值，在创建线程执行此函数时也必须指定该参数的值*。（容易理解，因为使用的是模板）
 
+函数不可使用非常量引用。
+
 
 
 ## 1.2 线程执行类或类函数
@@ -112,6 +114,223 @@ void test_build_thread()
 
 **同步**：多个线程之间的若干程序片段，因为依赖特定任务的完成，必须按照先后次序来运行。（同步即有序）
 
-**互斥**：指线程对某一资源的访问（特别是写入资源）具有唯一性和排他性。（访问是无序的）
+**互斥**：指不同线程的程序片段不允许交替执行，或指线程对某一资源的访问（特别是写入资源）具有唯一性和排他性。（访问是无序的）
 
 **线程间通信**：多个线程对同一共享内存数据的访问准确有序。
+
+
+
+# 3 互斥
+
+互斥是使不同线程的程序片段不交替运行（最最常见的目的是避免对同一内存资源的并发访问(concurrent access)）。
+
+为了获得独占式的资源访问能力，相应的线程必须**锁定**（lock) mutex。
+
+## 3.1 粗浅低劣的std::mutex
+
+将concurrent access 同步化的一个粗浅做法是引入mutex。如下：
+
+```c++
+void mutex_th1(int *val, mutex *mt)
+{
+	while (true) {
+		mt->lock();
+		cout << "thread1 val--" << (*val)-- << endl;
+		mt->unlock();
+		sleep_t(1);
+	}
+}
+
+void mutex_th2(int *val, mutex* mt)
+{
+	while (true) {
+		mt->lock();
+		cout << "thread1 val++" << (*val)++ << endl;
+		mt->unlock();
+		sleep_t(1);
+	}
+}
+
+void test_02()
+{
+	int a = 10;
+
+	mutex mt;
+
+	thread th1(mutex_th1, &a, &mt);
+	thread th2(mutex_th2, &a, &mt);
+
+	CTRL_EXIT
+	th1.detach();
+	th2.detach();
+}
+```
+
+粗浅的缘由：std::mutex必须成对使用lock和unlock，否则资源可能被永远锁住。正常情况下没问题，但是异常情况下，锁的释放可能变得非常复杂。
+
+**RAII守则**：构造函数获得资源，析构函数释放资源。
+
+
+
+## 3.2 std::lock_guard
+
+std::lock_guard是使用了RAII原则的智能锁，类似智能指针。使用方式很简单：
+
+```c++
+mutex mt;
+std::lock_guard<std::mutex> lockguard(mt); //自动调用mt的lock函数，若lock已被取走，他会阻塞，直到再次获得允许对保护区的访问。
+```
+
+
+
+## 3.3 std::mutex的尝试性try_lock
+
+程序想要获得一个lock但如果不可能成功的话它不想永远阻塞。此时可使用mutex的try_lock()。
+
+*try_lock()* : 试图取得一个lock，成功返回true。使用时需要对返回结果进行判断。
+
+```c++
+std::mutex mt;
+//尝试获取lock
+while (mt.try_lock() == false) {
+    doSomeOtherStuff();
+}
+//获取到了lock，对一个获取到的lock使用智能锁
+std::lock_guard<std::mutex> lg(mt, std::adopt_lock); //std::adopt_lock用于已lock的mutex
+```
+
+**如果想给try_lock加个时限，可以使用std::timed_mutex的try_lock_for()**，使用如下：
+
+```c++
+std::timed_mutex mt;
+
+if (mt.try_lock_for(std::chrono::seconds(1))) {
+    std::lock_guard<std::timed_mutex> lg(mt,std::adopt_lock);
+    ...
+} else {
+    couldNotGetTheLock();
+}
+//实时需求还可以使用try_lock_until()
+```
+
+
+
+## 3.4 处理多个lock
+
+```c++
+std::mutex m1, m2;
+...
+{
+    std::lock(m1, m2); //如果m1和m2没有全部获取到，就阻塞
+    std::lock_guard<std::mutex> lockM1(m1, std::adopt_lock);
+    std::lock_guard<std::mutex> lockM2(m2, std::adopt_lock);
+    ,,,
+}
+```
+
+```c++
+std::mutex m1, m2;
+...
+int idx = std::try_lock(m1, m2); //尝试获取两个mutex
+if (idx < 0) { //获取所有lock成功时返回-1
+    std::lock_guard<std::mutex> lockM1(m1, std::adopt_lock);
+    std::lock_guard<std::mutex> lockM2(m2, std::adopt_lock);
+} else { //失败时返回第一个失败的lock索引（从0开始计）
+    
+}
+```
+
+**注意**：只调用lock或try_lock而不把那些lock过继（adopt）给一个lock_guard，在离开作用域时不会自动解锁。所以lock、try_lock与lock_guard必须同时使用。
+
+
+
+## 3.5 unique_lock
+
+总结一下，我们可以使用mutex来lock或try_lock，或使用timed_mutez来try_lock_for()，并用lock_guard来进行管理。在尝试lock时，是先调用try_lock或try_lock_for()，获取到lock之后再过继给lock_guard。过程比较麻烦。
+
+所以，stl提供了一个更灵活的unique_lock来管理mutex。在构建unique_lock时就指定是否lock，try_lock或try_lock_for,或已lock的mutex。
+
+unique_lock的优点是析构后，能保证mutex没有锁住。
+
+**（1）尝试锁住但不阻塞**
+
+```c++
+std::unique_lock<std::mutex> lock(m, std::try_to_lock);
+if (lock) {
+    ...
+}
+```
+
+```c++
+std::unique_lock<std::timed_mutex> lock(m, std::chrono::sencond(1));
+if (lock) {
+    
+}
+```
+
+**（2）尚不打算锁住mutex**
+
+```c++
+std::unique_lock<std::mutex> lock(m, std::defer_lock);
+...
+lock.lock();
+...
+```
+
+
+
+## 3.6 std::once_flag与std::call_once()
+
+对于一个在程序运行期间只需要执行一次的函数（如初始化函数），单线程内，我们的常规做法是：
+
+```c++
+bool flag = false;
+...
+if (!flag) {
+    init_once();
+    flag = true;
+}
+```
+
+但是如果多个线程同时在执行，都依赖某一对象初始化，如果使用这种判断共享标识的方法，就需要通过mutex来对concurrent access提供保护。针对这种情况，stl提供了一个方便的办法。
+
+```c++
+#include <mutex>
+
+std::once_flag g_flag;
+
+//th1
+{
+    std::call_once(g_flag, init_once);
+}
+
+//th2
+{
+    std::call_once(g_flag, init_once);
+}
+
+//th3
+...
+//保证了init_once()只被执行一次，且提供了concurrent access保护。
+```
+
+即使是单线程内，也可以简化我们的代码：
+
+```c++
+//常规方式
+void fo()
+{
+	static bool flag = false;
+    if (!flag) {
+        ///
+        flag = true;
+    }
+}
+//新方式
+void fo()
+{
+    static std::once_flag flag;
+    std::call_once(flag, ...);
+}
+```
+
