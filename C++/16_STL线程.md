@@ -334,3 +334,29 @@ void fo()
 }
 ```
 
+
+
+# 4 Condition Variable
+
+## 4.1 条件变量产生的背景
+
+在处理**”让一个线程等待另一个线程“**的粗浅办法是使用ready flag之类的东西。这意味着等待中的线程需要poll其所需要的数据或条件是否已达到。
+
+```c++
+bool readyFlag;
+std::mutex readyFlagMutex;
+//
+{
+    std::unique_lock<std::mutex> ul(readyFlagMutex);
+    while (!readyFlag) {
+        ul.unclock();
+        ...
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        ul.lock();
+    }
+}
+```
+
+针对目标条件轮询的缺点在于：waiting thread消耗宝贵的CPU时间重复检验flag，其当它锁住mutex时负责设置ready flag的那个线程会blocked。我们也很难找到合适的sleep周期（该周期控制轮询的间隔）：两次检查若间隔太短则线程仍旧太浪费CPU时间于检查动作上，若太长则也许等待的task已完成而线程却还继续sleeping，导致发生延误。
+
+基于此背景，产生了条件变量，即Condition Variable。
