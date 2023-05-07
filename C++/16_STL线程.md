@@ -360,3 +360,90 @@ std::mutex readyFlagMutex;
 针对目标条件轮询的缺点在于：waiting thread消耗宝贵的CPU时间重复检验flag，其当它锁住mutex时负责设置ready flag的那个线程会blocked。我们也很难找到合适的sleep周期（该周期控制轮询的间隔）：两次检查若间隔太短则线程仍旧太浪费CPU时间于检查动作上，若太长则也许等待的task已完成而线程却还继续sleeping，导致发生延误。
 
 基于此背景，产生了条件变量，即Condition Variable。
+
+
+
+## 4.2 条件变量的使用
+
+- 包含头文件mutex和condition_variable，并各自声明一个需要同步的线程都能访问的变量
+
+  ```c++
+  #include <mutex>
+  #include <condition_variable>
+  std::mutex g_mutex;
+  std::condition_variable g_cond_var;
+  ```
+
+- 提醒”条件已满足“的线程，调用notify_one或notify_all
+
+  ```c++
+  g_cond_var.notify_one;
+  //g_cond_var.notify_all;
+  ```
+
+- 等待条件被满足的线程，调用wait
+
+  ```c++
+  std::unique_lock<std::mutex> lock(g_mutex);
+  g_cond_var.wait(lock);
+  ```
+
+  
+
+## 4.3 条件变量示例分析
+
+### 4.3.1 变量访问
+
+```c++
+#include <mutex>
+#include <condition_variable>
+
+bool g_ready_flag = false;
+std::mutex g_mutex;
+std::condition_variable g_cond_var;
+
+//thread 1
+void thread_1()
+{
+    {
+        std::lock_guard<std::mutex> lock(g_mutex);
+        g_ready_flag = true;
+    }
+    g_cond_var.notify_one(); //因为线程2的唤醒需同时满足锁空闲且notify被调用，所以此处在锁被释放后调用notify
+}
+
+//thread 2
+void thread_2()
+{
+    {
+        std::unique<std::mutex> lock(g_mutex);
+        g_cond_var.wait(lock, [](){return g_ready_flag;});
+    }
+    //do something else when g_ready_flag is true
+}
+```
+
+**分析**
+
+线程2需要判断ready flag是否满足条件，满足条件时继续往下执行，否则会进入睡眠，等待线程1的notify唤醒。
+
+线程2首先获取锁，获取到后，调用wait时，在已获得锁的情况下检查条件是否满足（如果已满足则不会有睡眠动作，继续向下执行）。条件不满足，则*释放锁，自身睡眠*，当其他线程*释放了锁且调用了notify*两个条件同时满足时，线程2会再次获取到锁并检查条件是否满足，满足则线程继续向下执行，否则继续释放锁并等待唤醒。
+
+
+
+### 4.3.2 多线程Queue
+
+基于*生产者-消费者*程序，多线程队列描述的是多个生产者线程往队列push数据，push完后，notify_one进行通知；消费者程序在队列empty时睡眠并等待生产者的notify唤醒。此类单向同步程序逻辑清楚，很简单。
+
+但考虑到线程2和线程1需要双向同步时（如生产者线程要求队列长度不能过长，否则需睡眠等待；消费者线程要求队列不能为空），问题稍稍复杂，需要仔细。（两个线程中的wait条件不能相同，应该互斥。否则可能出现两个线程同时睡眠的情况）
+
+
+
+### 4.3.3 事件驱动系统（event-driven system)
+
+多个consumer必须处理相同数据，则可以调用notify_all。典型的例子是*事件驱动系统*，其事件event必须被发布给所有曾经登录的consumer。
+
+```c++
+
+```
+
