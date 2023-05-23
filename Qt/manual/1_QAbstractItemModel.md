@@ -65,3 +65,19 @@ Note: Some general guidelines for subclassing models are available in the [Model
 When subclassing QAbstractItemModel, at the very least you must implement [index](qabstractitemmodel.html#index)(), [parent](qabstractitemmodel.html#parent)(), [rowCount](qabstractitemmodel.html#rowCount)(), [columnCount](qabstractitemmodel.html#columnCount)(), and [data](qabstractitemmodel.html#data)(). These functions are used in all read-only models, and form the basis of editable models.
 
 当子类化QAbstractItemModel时，至少必须实现index()、parent()、rowCount()、columnCount()和data()这些函数。这些函数在所有只读模型中使用，并构成可编辑模型的基础。
+
+You can also reimplement [hasChildren](qabstractitemmodel.html#hasChildren)() to provide special behavior for models where the implementation of [rowCount](qabstractitemmodel.html#rowCount)() is expensive. This makes it possible for models to restrict the amount of data requested by views, and can be used as a way to implement lazy population of model data.
+
+您还可以重新实现hasChildren()函数，为那些rowCount()实现较昂贵的模型提供特殊行为。这使得模型可以限制视图请求的数据量，并可用作实现惰性填充模型数据的方法。
+
+To enable editing in your model, you must also implement [setData](qabstractitemmodel.html#setData)(), and reimplement [flags](qabstractitemmodel.html#flags)() to ensure that ItemIsEditable is returned. You can also reimplement [headerData](qabstractitemmodel.html#headerData)() and [setHeaderData](qabstractitemmodel.html#setHeaderData)() to control the way the headers for your model are presented.
+
+要启用模型中的编辑功能，您还必须实现setData()方法，并重新实现flags()方法以确保返回ItemIsEditable标志。您还可以重新实现headerData()和setHeaderData()方法来控制模型标题的呈现方式。
+
+The [dataChanged](qabstractitemmodel.html#dataChanged)() and [headerDataChanged](qabstractitemmodel.html#headerDataChanged)() signals must be emitted explicitly when reimplementing the [setData](qabstractitemmodel.html#setData)() and [setHeaderData](qabstractitemmodel.html#setHeaderData)() functions, respectively.
+
+"respectively" 可以翻译为“分别”、“各自”，表示两个函数 setData() 和 setHeaderData() 需要分别显式地发出 dataChanged() 和 headerDataChanged() 信号。可以将句子翻译为：“当重新实现setData()和setHeaderData()函数时，分别需要显式地发出dataChanged()和headerDataChanged()信号。”
+
+Custom models need to create model indexes for other components to use. To do this, call [createIndex](qabstractitemmodel.html#createIndex)() with suitable row and column numbers for the item, and an identifier for it, either as a pointer or as an integer value. The combination of these values must be unique for each item. Custom models typically use these unique identifiers in other reimplemented functions to retrieve item data and access information about the item's parents and children. See the [Simple Tree Model Example](../qtwidgets/qtwidgets-itemviews-simpletreemodel-example.html) for more information about unique identifiers.
+
+自定义模型需要创建模型索引供其他组件使用。为此，请使用适当的行号和列号以及一个标识符（作为指针或整数值）调用createIndex()方法。这些值的组合必须对于每个项都是唯一的。自定义模型通常在其他重新实现的函数中使用这些唯一的标识符来检索项数据并访问有关该项父级和子级的信息。请参阅Simple Tree Model Example了解有关唯一标识符的更多信息。
