@@ -137,3 +137,51 @@ Current time: 2023-05-27 22:14:46
 
 ## 1.7 表示“Stream状态”的常量
 
+```c++
+using iostate = int;
+```
+
+- goodbit 一切都好，指所有位均为0
+- eofbit 遇到end-of-file
+- failbit 某个I/O动作未成功；该标识被置位无法进行其他操作
+- badbit 毁灭性错误，不确定的状态
+
+**注意**：读取到文件最后一个字符后，继续读取，end-of-file和failbit会同时置位
+
+**注意：**上述所有标志都只能反映最后一次操作的stream状态
+
+iostate定义在ios_base内，但basic_ios继承自ios_base，ios又是basic_ios模板的实例化，所以访问标志可以用std::ios::eofbtt.
+
+
+
+***状态函数***
+
+- good() 
+- eof()
+- fail()
+- bad()
+- rdstate() 返回当前已设置的所有flag
+- clear 清除所有flag
+- clear(state) 清除所有flag后，设置state
+- setstate(state) 加设state flag
+
+rdstate返回一个int数据，该数据的不同位表示stream的各状态。
+
+```c++
+good(){
+    rdstate() & std::ios::goodbit;
+}
+fail(){
+    rdstate() & (ios_base::badbit | ios_base::failbit);
+}
+```
+
+**注意：**前4个获取状态的函数不会改变状态，只是单纯获取状态。
+
+
+
+## 1.8 Stream状态与bool条件测试
+
+- ***operator bool ()*** 相当于***! fail()***
+- ***operator bool ! ()*** 相当于***fail()***
+
