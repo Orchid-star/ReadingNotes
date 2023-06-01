@@ -260,3 +260,96 @@ output的put和write都是不论char是什么，都往stream写。
 ***(3) ostream& ostream::flush()***
 
 刷新缓冲区，也就是把数据强制写入所属设备或I/O通道。
+
+
+
+## 1.11 操控器（manipulator）
+
+操控器，只是函数而已。以std::endl为例，原理如下。
+
+```c++
+ostream& ostream::operator<<(ostream& (*p)(ostream&))
+{
+    return p(*this);
+}
+
+std::ostream& std::endl(std::ostream& strm)
+{
+    strm.put('\n');
+    strm.flush();
+    return strm;
+}
+```
+
+可以参照此自定义操控器。这也是运算符重载的绝佳示范。
+
+
+
+## 1.12 格式化（formatting）
+
+**stream格式化**：按照一定的格式输入输出。
+
+**字符串格式化**：将变量的值插入到一个包含占位符的字符串中，生成一个新的字符串。
+
+
+
+## 1.13 文件访问（file access）
+
+***ifstream 、ofstream、fstream***
+
+**注意：**文件流分别继承自istream、ostream、iostream。
+
+**文件标志**：
+
+- ***in***
+- ***out***
+- ***app***
+- ***ate***
+- ***trunc***
+- ***binary***
+
+打开文件时同时考虑以下三点决定使用哪些标志：
+
+- 是读还是写？（in、out）
+- 追加还是清空？（app、trunc、ate）
+- 二进制还是文本？（binary）
+
+***文件什么时候打开？***
+
+- 构造时设置了文件名和文件模式，则立即打开
+- 构造时没有设置文件名，通过open设置文件名和文件模式之后打开
+
+```c++
+string path = "D:\\1.txt";
+ofstream file(path, std::ios::binary | std::ios::out);
+if (file) {
+    file.write(...);
+}
+```
+
+```c++
+string path = "D:\\1.txt";
+ofstream file;
+file.open(path, std::ios::binary | std::ios::out);
+if (file) {
+    file.write(...);
+}
+```
+
+
+
+***数据如何写入或读入？***
+
+所有的数据都是二进制数据，唯一注意点是二进制模式和文本模式下对换行符的差异。
+
+
+
+***随机访问（random access）***
+
+ifstream包括tellg、seekg。
+
+ofstream包括tellp、seekp
+
+g = get, p = put。tell返回的是绝对位置，seek可移动到指定绝对位置或相对位置。有3个表示相对位置的常量，分别是beg、cur、end。
+
+stream的位置类型是std::ios::pos_type或std::streampos。
