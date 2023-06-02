@@ -353,3 +353,38 @@ ofstream包括tellp、seekp
 g = get, p = put。tell返回的是绝对位置，seek可移动到指定绝对位置或相对位置。有3个表示相对位置的常量，分别是beg、cur、end。
 
 stream的位置类型是std::ios::pos_type或std::streampos。
+
+
+
+## 1.14 String Stream
+
+string stream是专门为string设计的流，包括istringstream和ostringstream。
+
+***为什么要专门为string设计一个流？***
+
+为了方便的对string进行格式化。
+
+***原理与使用***
+
+string stream区别与普通的stream，它有对应的缓冲区，但是没有对应的设备（指显示器、键盘、文件等）。
+
+在使用ostringstream时，可以结合stream的操控器格式化地向其缓冲中写入数据，然后通过str()成员一次性取出获得格式化的string。
+
+```c++
+ostringstream os;
+os << "dec: " << 15 << hex << " hex: " << 15 << endl;
+cout << os.str() << endl;
+```
+
+在使用istringstream时，可以一次性传入一个string至其缓冲区，然后通过输入符号从缓冲区中获取数据。（格式化地从既有地string中读数据）。
+
+```c++
+int x;
+float f;
+std::string s ="3.7";
+std::istringstream is(s);
+is >> x >> f; //x=3, f=0.7
+```
+
+
+
