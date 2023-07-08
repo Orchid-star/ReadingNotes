@@ -66,3 +66,42 @@ void Widget::init_table()
 }
 ```
 
+
+
+***捕获内容改变的单元格及其内容***
+
+```c++
+void Widget::textChanged()
+{
+    connect(this, &QTableWidget::cleeChanged, this, [=](int row, int col){
+        QTableWidgetItem *it = item(row, col);
+        qDebug() << it->text();
+    });
+}
+```
+
+
+
+***设置某个单元格为指定类型控件***
+
+```c++
+void Widget::set_widget()
+{
+    QPushButton *p_btn = new QPushButton("btn");
+    setCellWidget(row, col, p_btn);
+}
+```
+
+
+
+***设置某个单元格属性***
+
+```c++
+void Widget::set_item()
+{
+    QTableWidgetItem *it = new QTableWidgetItem;
+    it->setBrush(QBrush(QColor(255,0,0,100)));
+    setItem(row, col, it);
+}
+```
+
