@@ -1,0 +1,17 @@
+# 1
+cmake_minimum_required(VERSION 3.8.0)
+project(cmake_lib)
+
+# 2
+set(HEADER_DIR algo1 algo2 src algo2/add_s algo2/sub_s algo2/mul_s algo2/dev_s)
+include_directories(${HEADER_DIR})
+
+# 3
+file(GLOB_RECURSE ALGO1 algo1/*.cpp)
+file(GLOB_RECURSE ALGO2 algo2/*.cpp)
+file(GLOB_RECURSE SRC src/*.cpp)
+set(SRC_CPP ${ALGO1} ${ALGO2} ${SRC})
+
+# 4
+set(LIBRARY_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/lib)
+add_library(testlib STATIC ${SRC_CPP})

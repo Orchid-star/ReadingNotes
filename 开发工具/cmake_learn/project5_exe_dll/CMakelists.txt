@@ -1,0 +1,19 @@
+# 1
+cmake_minimum_required(VERSION 3.8.0)
+project(test_link_dll)
+
+# 2
+include_directories(${CMAKE_SOURCE_DIR})
+
+# 3
+set(SRC_CPP main.cpp)
+
+# -->5.1
+link_directories(${CMAKE_SOURCE_DIR}/../project3_dll/build/dll)
+
+# 4
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/bin)
+add_executable(app ${SRC_CPP})
+
+# -->5.2
+target_link_libraries(app testdll)

@@ -1,0 +1,17 @@
+# 1 常规设置
+cmake_minimum_required(VERSION 3.8.0)
+project(pro_exe)
+
+# 2 包含所有路径（设置头文件的查找范围）
+set(HEADER_DIR algo1 algo2 src algo2/add_s algo2/sub_s algo2/mul_s algo2/dev_s)
+include_directories(${HEADER_DIR})
+
+# 3 获取所有cpp源文件至变量中
+file(GLOB_RECURSE ALGO1 algo1/*.cpp)
+file(GLOB_RECURSE ALGO2 algo2/*.cpp)
+file(GLOB_RECURSE SRC src/*.cpp)
+set(SRC_DIR ${ALGO1} ${ALGO2} ${SRC})
+
+# 4 指定exe输出路径并生成exe
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/build/bin)
+add_executable(app main.cpp ${SRC_DIR})
