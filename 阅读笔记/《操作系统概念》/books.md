@@ -1,0 +1,12 @@
+- [ ] 汇编语言 - 王爽
+- [ ] 《Orange'S:一个操作系统的实现》 - 于渊
+- [ ] 30天自制操作系统 - 川合秀实
+- [ ] Linux内核完全注释 - 赵炯
+- [ ] X86汇编语言 - 从实模式到保护模式 - 李忠
+- [ ] 操作系统真象还原 - 郑刚
+- [ ] Managing Projects With GNU Make
+- [ ] 汇编语言程序设计 - Blum
+- [ ] Carter - PC Assembly Language
+- [ ] 程序员的自我修养
+- [ ] Linux二进制分析
+- [ ] 
